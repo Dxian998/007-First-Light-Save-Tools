@@ -45,6 +45,7 @@ pub fn build_out_path(source_file: &Path, suffix: &str) -> PathBuf {
     source_file.with_file_name(name)
 }
 
+#[allow(dead_code)]
 pub fn backup_if_needed(path: &Path) {
     let parent = path.parent().unwrap_or(Path::new("."));
     let bak_dir = parent.join("Backup");

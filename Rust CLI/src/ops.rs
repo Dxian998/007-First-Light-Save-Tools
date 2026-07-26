@@ -327,11 +327,7 @@ fn resign_index(path: &Path, from_id: u64, to_id: u64) {
     let ciphertext = fs::read(path).expect("cannot read index.save");
     let from_bytes = from_id.to_le_bytes();
     let to_bytes   = to_id.to_le_bytes();
-    let resigned: Vec<u8> = ciphertext
-        .iter()
-        .enumerate()
-        .map(|(i, &b)| b ^ from_bytes[i % 8] ^ to_bytes[i % 8])
-        .collect();
+    let resigned: Vec<u8> = ciphertext.iter().enumerate().map(|(i, &b)| b ^ from_bytes[i % 8] ^ to_bytes[i % 8]).collect();
     // backup_if_needed(path);
     fs::write(path, &resigned).expect("cannot write resigned index");
     println!("    [SUCCESS] index.save decrypted & resigned successfully!\n");
@@ -341,7 +337,7 @@ fn resign_data(path: &Path, from_id: u64, to_id: u64) {
     println!("  Resigning data.save:");
     let ciphertext = fs::read(path).expect("cannot read data.save");
     let decrypted  = xor_with_key(&ciphertext, from_id);
-    let payload = match zlib_decompress(&decrypted) {
+    let _payload = match zlib_decompress(&decrypted) {
         Some(p) => {
             println!("    [OK] Decrypted and decompressed payload successfully ({} raw bytes).", p.len());
             p
@@ -351,13 +347,13 @@ fn resign_data(path: &Path, from_id: u64, to_id: u64) {
             return;
         }
     };
-    let recompressed = zlib_compress(&payload);
-    let resigned     = xor_with_key(&recompressed, to_id);
+    let from_bytes = from_id.to_le_bytes();
+    let to_bytes   = to_id.to_le_bytes();
+    let resigned: Vec<u8> = ciphertext.iter().enumerate().map(|(i, &b)| b ^ from_bytes[i % 8] ^ to_bytes[i % 8]).collect();
     // backup_if_needed(path);
     fs::write(path, &resigned).expect("cannot write resigned data");
     println!(
-        "    [SUCCESS] data.save re-encrypted & resigned successfully! (Size changed from {} to {} bytes)\n",
-        ciphertext.len(),
+        "    [SUCCESS] data.save re-encrypted & resigned successfully! ({} bytes preserved)\n",
         resigned.len()
     );
 }
@@ -398,10 +394,7 @@ pub fn cmd_bruteforce_file(path: &Path) {
         }
     } else {
         let b0 = ciphertext[0] ^ 0x78;
-        let b1_candidates: Vec<String> = VALID_FLG
-            .iter()
-            .map(|&f| format!("0x{:02X}", ciphertext[1] ^ f))
-            .collect();
+        let b1_candidates: Vec<String> = VALID_FLG.iter().map(|&f| format!("0x{:02X}", ciphertext[1] ^ f)).collect();
         println!("Initiating accelerated zlib-constrained key-space reduction...");
         println!("  Key Byte 0 resolved to: 0x{b0:02X}");
         println!("  Key Byte 1 candidates:  {}", b1_candidates.join(", "));
